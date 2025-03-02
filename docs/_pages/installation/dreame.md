@@ -299,7 +299,7 @@ Follow these steps to enter fastboot:
 <div markdown="1" class="emphasis-box">
 <strong>Entering fastboot</strong><br/>
 
-Plug the Breakout PCB into your robot. Make sure that the USB OTG ID Jumper is **NOT** set and plug a cable into
+Plug the Breakout PCB into your turned-off robot. Make sure that the USB OTG ID Jumper is **NOT** set and plug a cable into
 the Micro USB port.
 
 <img src="./img/dreame_breakout_breakout_fel.jpg" alt="Dreame Breakout PCB connected" width="1200" height="700">
@@ -317,6 +317,8 @@ LiveSuit should now display this message box:
 
 Click no. This should now have booted your robot into Fastboot.
 To verify that, open a new terminal and run `fastboot devices`.
+It is possible that it takes a few seconds for the device to show up.
+Simply retry `fastboot devices`.
 </div>
 
 If you see your robot, continue with `fastboot getvar dustversion`
@@ -403,7 +405,8 @@ root@T420:/home/hypfer# du -h dustx102.bin
 
 Same check for being ~400MB in size applies here as well.
 
-With that done, zip up everything and store the file in a safe place
+With that done, zip up everything and store the file in a safe place.
+`zip` might need to be installed via `apt get install zip`.
 
 ```
 root@T420:/home/hypfer# zip dreame_rxxxx_samples.zip dustx100.bin dustx101.bin dustx102.bin  
@@ -509,6 +512,7 @@ You can just ignore that one.<br/>
 
 
 Finally, run `fastboot reboot`. If it boots up normally, you have successfully rooted your robot.
+For the following steps you don't need the PCB anymore.
 
 ### Phase 3: Install Valetudo
 
@@ -519,19 +523,10 @@ For that, first, check the [Supported Robots](https://valetudo.cloud/pages/gener
 Once you know that, download the latest matching Valetudo binary to your laptop:
 `https://github.com/Hypfer/Valetudo/releases/latest/download/valetudo-{armv7,armv7-lowmem,aarch64}`
 
-With the Valetudo binary downloaded, head over to <a href="https://github.com/Hypfer/valetudo-helper-httpbridge" rel="noopener" target="_blank">https://github.com/Hypfer/valetudo-helper-httpbridge</a>
-and download a matching binary for your laptops operating system.
-
 Now, connect the laptop to the Wi-Fi Access Point of the robot. If you can't see the robots Wi-Fi AP to connect to, it might have disabled itself.
 In that case, press and hold the two outer buttons until it starts talking to you.
 
 Once connected via Wi-Fi, you should be able to connect to it using ssh. Do that now and keep the shell open: `ssh -i ./your/keyfile root@192.168.5.1`
-
-The next step is to start the utility webserver. Open a new terminal and run the `./valetudo-helper-httpbridge-amd64` binary **Don't close that window until you're done.**
-The server will create a new `www` directory right next to itself as well as print out a few sample commands explaining how to download from and upload to it.
-
-Make sure that it is listening on an IP in the range of `192.168.5.0/24` and then copy the downloaded valetudo binary to the newly created `www` folder.
-Remove the `{-aarch64,lowmem,..}` etc. suffix. It should just be called `valetudo`.
 
 <div markdown="1" class="emphasis-box">
 <div class="alert alert-important" role="alert">
@@ -550,29 +545,22 @@ To do that, use the ssh shell to create a tar file of all the required files lik
 tar cvf /tmp/backup.tar /mnt/private/ /mnt/misc/
 ```
 
-Then, look at the output of the `valetudo-helper-httpbridge` instance you've started previously.
-It contains an example curl command usable for uploading that should look similar to this one:
+Then, pull the backup from to robot to your laptop using a laptop shell: 
 
 ```
-curl -X POST http://192.168.5.101:1337/upload -F 'file=@./file.tar'
+scp -O -i ./your/keyfile root@192.168.5.1:/tmp/backup.tar backup.tar
 ```
-
-Change the file parameter to `file=@/tmp/backup.tar`, execute the command and verify that the upload to your laptop
-was successful. If everything worked out correctly, you should now see a backup.tar with a non-zero size in `www/uploads`.
-
-If you're experiencing issues, make sure that you've specified the correct port.
 
 </div>
 
-After uploading the backup and storing it in a safe place, you can now download the valetudo binary that you've
-previously put in the `www` directory. `valetudo-helper-httpbridge` will tell you the correct command, which should look
-similar to this:
+After pulling the backup and storing it in a safe place, you can now copy the valetudo binary that you've downloaded.
+From your laptop shell:
 
 ```
-wget http://192.168.5.101:1337/valetudo
+scp -O -i ./your/keyfile valetudo-aarch64 root@192.168.5.1:/tmp/valetudo
 ```
 
-After downloading the Valetudo binary, finish the install by running these commands on the robot:
+After copying the Valetudo binary, finish the install by running these commands on the robot:
 ```
 mv /tmp/valetudo /data/valetudo
 chmod +x /data/valetudo
